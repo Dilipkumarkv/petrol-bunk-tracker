@@ -1,0 +1,133 @@
+{
+  "meta": {
+    "source": "spec §5 (verbatim figures from the real notebook pages)",
+    "transcribed_by": "Builder, M1 slice 1",
+    "units": {
+      "litres_h": "integer hundredths of a litre. 25687 = 256.87 L",
+      "rate_paise": "integer paise per litre",
+      "amount_x100": "integer hundredths of a paise. Exact and lossless: salesLitresH * ratePaise. 284766082 = 2847660.82 paise = Rs 28,476.6082"
+    },
+    "frozen": "This file is golden data. Changing any value requires a decisions.md entry citing the business reason (spec §8.4 rule 1).",
+    "synthetic_openings": "§5 does not record the meter readings for G1-G5, only the litre deltas. Openings below are a documented synthetic base of 1000000 (10,000.00 L) chosen so that closing_h - opening_h equals the litre delta recorded in §5. The metre continuity case G6 uses the real readings. No golden amount depends on the base."
+  },
+  "cases": [
+    {
+      "id": "G1",
+      "page": "p.30",
+      "label": "Petrol, one operator, 3 nozzles, testing 15.60 L",
+      "product": "Petrol",
+      "rate_paise": 11086,
+      "turns": [
+        { "nozzle": 1, "opening_h": 1000000, "closing_h": 1002988, "testing_h": 0, "credits_h": [] },
+        { "nozzle": 2, "opening_h": 1000000, "closing_h": 1021406, "testing_h": 0, "credits_h": [] },
+        { "nozzle": 3, "opening_h": 1000000, "closing_h": 1002853, "testing_h": 1560, "credits_h": [] }
+      ],
+      "expected": {
+        "litres_h": 27247,
+        "testing_h": 1560,
+        "credit_h": 0,
+        "sales_litres_h": 25687,
+        "amount_x100": 284766082,
+        "paper_rupees": 28476
+      },
+      "derivation": "29.88 + 214.06 + 28.53 = 272.47 L; 272.47 - 15.60 = 256.87 L. 25687 * 11086 = 284766082 -> Rs 28,476.6082. Paper 28,476 (truncated).",
+      "note": "§5 does not say which nozzle carried the 15.60 L test. The shift total is allocation-independent because the formula is linear, so the choice cannot change expected.amount_x100."
+    },
+    {
+      "id": "G2",
+      "page": "p.31",
+      "label": "Petrol, one operator, 2 nozzles, no testing",
+      "product": "Petrol",
+      "rate_paise": 11086,
+      "turns": [
+        { "nozzle": 1, "opening_h": 1000000, "closing_h": 1007675, "testing_h": 0, "credits_h": [] },
+        { "nozzle": 2, "opening_h": 1000000, "closing_h": 1017889, "testing_h": 0, "credits_h": [] }
+      ],
+      "expected": {
+        "litres_h": 25564,
+        "testing_h": 0,
+        "credit_h": 0,
+        "sales_litres_h": 25564,
+        "amount_x100": 283402504,
+        "paper_rupees": 28340
+      },
+      "derivation": "76.75 + 178.89 = 255.64 L. 25564 * 11086 = 283402504 -> Rs 28,340.2504. Paper 28,340."
+    },
+    {
+      "id": "G3",
+      "page": "p.31",
+      "label": "Petrol, second operator, 1 nozzle",
+      "product": "Petrol",
+      "rate_paise": 11086,
+      "turns": [
+        { "nozzle": 1, "opening_h": 1000000, "closing_h": 1019149, "testing_h": 0, "credits_h": [] }
+      ],
+      "expected": {
+        "litres_h": 19149,
+        "testing_h": 0,
+        "credit_h": 0,
+        "sales_litres_h": 19149,
+        "amount_x100": 212285814,
+        "paper_rupees": 21228
+      },
+      "derivation": "191.49 L. 19149 * 11086 = 212285814 -> Rs 21,228.5814. Paper 21,228."
+    },
+    {
+      "id": "G4",
+      "page": "p.44",
+      "label": "Diesel with 5 credit-litre lines",
+      "product": "Diesel",
+      "rate_paise": 9877,
+      "turns": [
+        {
+          "nozzle": 1,
+          "opening_h": 1000000,
+          "closing_h": 1069453,
+          "testing_h": 0,
+          "credits_h": [12915, 2000, 1759, 9200, 2500]
+        },
+        { "nozzle": 2, "opening_h": 1000000, "closing_h": 1008606, "testing_h": 0, "credits_h": [] },
+        { "nozzle": 3, "opening_h": 1000000, "closing_h": 1011653, "testing_h": 0, "credits_h": [] }
+      ],
+      "expected": {
+        "litres_h": 89712,
+        "testing_h": 0,
+        "credit_h": 28374,
+        "sales_litres_h": 61338,
+        "amount_x100": 605835426,
+        "paper_rupees": 60583
+      },
+      "derivation": "694.53 + 86.06 + 116.53 = 897.12 L. Credits 129.15 + 20 + 17.59 + 92 + 25 = 283.74 L. 897.12 - 283.74 = 613.38 L. 61338 * 9877 = 605835426 -> Rs 60,583.5426. Paper 60,583.",
+      "note": "The 'Can' +750 addition and the -100/-30 deductions in §5 G4 are shift-level adjustments, not nozzle sales. Out of scope for nozzleSales."
+    },
+    {
+      "id": "G5",
+      "page": "spec §5",
+      "label": "XP with a 5 L test",
+      "product": "XP",
+      "rate_paise": 12034,
+      "turns": [
+        { "nozzle": 1, "opening_h": 1000000, "closing_h": 1000824, "testing_h": 500, "credits_h": [] }
+      ],
+      "expected": {
+        "litres_h": 824,
+        "testing_h": 500,
+        "credit_h": 0,
+        "sales_litres_h": 324,
+        "amount_x100": 3899016,
+        "paper_rupees": 390
+      },
+      "derivation": "8.24 - 5 = 3.24 L. 324 * 12034 = 3899016 -> Rs 389.9016. Spec states ~Rs 390 (rounded)."
+    },
+    {
+      "id": "G6",
+      "page": "spec §5",
+      "label": "Meter continuity: next opening equals previous closing",
+      "applies_to": "model",
+      "previous_closing_h": 164990648,
+      "opening_h": 164990648,
+      "expected": { "litres_h": 0 },
+      "note": "Not a nozzleSales case. Belongs to model/validate in a later M1 slice; recorded here so the number is not lost."
+    }
+  ]
+}
