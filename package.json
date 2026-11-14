@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Offline-first fuel pump daily tracker. Deterministic core, LLM never in the money path.",
   "scripts": {
-    "test": "node --test tests/golden/*.test.mjs tests/unit/*.test.mjs tests/property/*.test.mjs",
-    "test:golden": "node --test tests/golden/*.test.mjs"
+    "test": "node --test --test-isolation=none",
+    "test:ci": "node --test"
   }
 }

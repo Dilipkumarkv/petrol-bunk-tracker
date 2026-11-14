@@ -1,5 +1,7 @@
 # Petrol Bunk Tracker
 
+[![tests](https://github.com/Dilipkumarkv/petrol-bunk-tracker/actions/workflows/tests.yml/badge.svg)](https://github.com/Dilipkumarkv/petrol-bunk-tracker/actions/workflows/tests.yml)
+
 An offline-first web app for recording nozzle meter readings, operator collections, deposits and daily cash reconciliation at a retail fuel outlet — built so that **no rupee on screen is computed by a language model**.
 
 > **Status: early.** Milestone M1 (deterministic money core), slice 1 of 6 is complete and green. There is no UI yet. See [Roadmap](#roadmap).
@@ -34,7 +36,7 @@ Passing a float anywhere in the money path throws. That is deliberate.
 
 ```sh
 cd fuel-tracker
-node --test --test-isolation=none tests/golden/nozzle-sales.test.mjs
+npm test                 # or: node --test --test-isolation=none
 ```
 
 ```
@@ -47,7 +49,11 @@ node --test --test-isolation=none tests/golden/nozzle-sales.test.mjs
 
 No dependencies, no build step, no `npm install`. Node 20+.
 
-> **Environment note.** `--test-isolation=none` is required on Termux/Android: the default test runner spawns a child node with a flag this libc rejects (`expected absolute path: --heap-prof-interval=...`). It is harmless everywhere else.
+> **Environment note.** `--test-isolation=none` is required on Termux/Android: the default test runner spawns a child node with a flag this libc rejects (`expected absolute path: --heap-prof-interval=...`). It is harmless everywhere else, but does not exist before Node 22.8 — so CI runs plain `node --test` instead.
+
+### Continuous integration
+
+[`.github/workflows/tests.yml`](.github/workflows/tests.yml) runs the whole suite on Node 20, 22 and 24 for every push and pull request, and fails the build if `harness/fixtures/` changes without a matching entry in `harness/decisions.md` (spec §8.4 rule 1 — golden data is never edited to make a test pass).
 
 ---
 

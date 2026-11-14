@@ -1,0 +1,64 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # No dependencies, so no install step and no cache.
+      # Plain `node --test` discovers **/*.test.mjs recursively.
+      # The --test-isolation=none flag used on Android/Termux is NOT needed here
+      # and does not exist before Node 22.8, so it is deliberately absent.
+      - name: Golden + unit suite
+        run: node --test
+
+  guard:
+    name: harness guard (§8.3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      # §8.4 rule 1: never change golden data to make a test pass.
+      # A fixture change is only allowed alongside a decision entry.
+      - name: Golden fixtures changed ⇒ decisions.md required
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          changed="$(git diff --name-only FETCH_HEAD HEAD)"
+          echo "--- changed files ---"
+          echo "$changed"
+          if echo "$changed" | grep -q '^harness/fixtures/'; then
+            if ! echo "$changed" | grep -q '^harness/decisions.md'; then
+              echo "::error::harness/fixtures/ changed without an entry in harness/decisions.md (spec §8.4 rule 1)"
+              exit 1
+            fi
+            echo "fixtures changed and a decision entry is present — ok"
+          else
+            echo "no fixture changes — ok"
+          fi
