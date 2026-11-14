@@ -3,6 +3,12 @@
 **Remote:** https://github.com/Dilipkumarkv/petrol-bunk-tracker (public, `main`)
 Last green commit: `5f4af01` (docs: README) on top of `be28036` (slice 1). D5 records the repo name choice.
 
+**CI:** `.github/workflows/tests.yml` — `node --test` on Node 22/24/26 for every push and PR.
+Run 2 green on all three (Node 20 was dropped as end-of-life in April 2026; run 1 proved it slow but passing).
+A `guard` job enforces §8.4 rule 1 on PRs: a change under `harness/fixtures/` fails unless
+`harness/decisions.md` changed too. The guard is skipped on pushes to `main`, so it has not yet
+executed for real — verify on the first PR.
+
 ## Milestone status
 | Milestone | Target | State |
 |---|---|---|
