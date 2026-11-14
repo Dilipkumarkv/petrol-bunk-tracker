@@ -47,13 +47,13 @@ npm test                 # or: node --test --test-isolation=none
 ℹ fail 0
 ```
 
-No dependencies, no build step, no `npm install`. Node 20+.
+No dependencies, no build step, no `npm install`. Node 22+ (Node 20 is end-of-life).
 
 > **Environment note.** `--test-isolation=none` is required on Termux/Android: the default test runner spawns a child node with a flag this libc rejects (`expected absolute path: --heap-prof-interval=...`). It is harmless everywhere else, but does not exist before Node 22.8 — so CI runs plain `node --test` instead.
 
 ### Continuous integration
 
-[`.github/workflows/tests.yml`](.github/workflows/tests.yml) runs the whole suite on Node 20, 22 and 24 for every push and pull request, and fails the build if `harness/fixtures/` changes without a matching entry in `harness/decisions.md` (spec §8.4 rule 1 — golden data is never edited to make a test pass).
+[`.github/workflows/tests.yml`](.github/workflows/tests.yml) runs the whole suite on Node 22, 24 and 26 for every push and pull request, and fails the build if `harness/fixtures/` changes without a matching entry in `harness/decisions.md` (spec §8.4 rule 1 — golden data is never edited to make a test pass).
 
 ---
 

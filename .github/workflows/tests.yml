@@ -21,7 +21,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20, 22, 24]
+        # Node 20 is deliberately absent: it reached end-of-life in April 2026 and its
+        # setup-node step hung on the runner. Supported lines are 22, 24 and 26.
+        node: [22, 24, 26]
     steps:
       - uses: actions/checkout@v4
 
