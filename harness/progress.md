@@ -1,5 +1,8 @@
 # Progress — M1 slice 1 complete
 
+**Remote:** https://github.com/Dilipkumarkv/petrol-bunk-tracker (public, `main`)
+Last green commit: `5f4af01` (docs: README) on top of `be28036` (slice 1). D5 records the repo name choice.
+
 ## Milestone status
 | Milestone | Target | State |
 |---|---|---|
