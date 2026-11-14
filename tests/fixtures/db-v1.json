@@ -1,0 +1,68 @@
+{
+  "note": "Immutable snapshot of the released v1 schema and a representative dataset. Every future schema version must open this snapshot without data loss (M2 plan, test plan > Migrations). Do not edit: it is fixture data.",
+  "version": 1,
+  "stores": {
+    "nozzles": [
+      { "id": "n1", "label": "Nozzle 1", "product": "Petrol", "use": "Sales" },
+      { "id": "n2", "label": "Nozzle 2", "product": "Diesel", "use": "Sales" }
+    ],
+    "rates": [
+      { "product": "Petrol", "effective_from": "2026-11-01", "price_paise_per_litre": 11086 },
+      { "product": "Diesel", "effective_from": "2026-11-01", "price_paise_per_litre": 9877 }
+    ],
+    "operators": [
+      { "id": "op1", "name": "Ramesh", "nameNorm": "ramesh" }
+    ],
+    "shifts": [
+      { "id": "s1", "date": "2026-11-14", "shift_no": 1, "operator_id": "op1", "status": "closed" }
+    ],
+    "turns": [
+      {
+        "id": "t1",
+        "shift_id": "s1",
+        "nozzle_id": "n1",
+        "opening_h": 1000000,
+        "closing_h": 1002988,
+        "testing_h": 0,
+        "credits_h": [],
+        "amount_x100": 33124968,
+        "recorded_at": "2026-11-14T09:00:00+05:30"
+      }
+    ],
+    "payments": [
+      { "id": "p1", "shift_id": "s1", "kind": "Paytm", "amount_paise": 12999 }
+    ],
+    "deductions": [
+      { "id": "d1", "shift_id": "s1", "label": "watchman", "amount_paise": 60, "sign": -1 }
+    ],
+    "deposits": [
+      { "id": "dep1", "shift_id": "s1", "cash_paise": 4993, "at": "2026-11-14T09:30:00+05:30" }
+    ],
+    "days": [
+      {
+        "date": "2026-11-14",
+        "other_income_paise": 0,
+        "salary_paise": 0,
+        "other_expense_paise": 0,
+        "bank_deposit_paise": 0,
+        "actual_cash_counted_paise": 0
+      }
+    ],
+    "audit": [
+      {
+        "at": "2026-11-14T09:30:00+05:30",
+        "who": "owner",
+        "action": "close",
+        "before": null,
+        "after": { "id": "s1", "status": "closed" }
+      }
+    ],
+    "drafts": [
+      { "shift_id": "s2", "payload": { "closing_h": 1005000 } }
+    ],
+    "meta": [
+      { "k": "schema_version", "v": 1 },
+      { "k": "device_id", "v": "device-test" }
+    ]
+  }
+}

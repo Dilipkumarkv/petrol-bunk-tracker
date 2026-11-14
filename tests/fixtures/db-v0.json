@@ -1,0 +1,23 @@
+{
+  "note": "SYNTHETIC pre-release legacy install. This is NOT a released schema — it exists only to prove the migration runner carries old rows forward without data loss. Do not edit: it is fixture data.",
+  "db_name": "fuel-legacy-v0",
+  "version": 1,
+  "stores": [
+    {
+      "name": "nozzlesLegacy",
+      "keyPath": "id",
+      "rows": [
+        { "id": "n1", "label": "Nozzle 1", "reading_h": 164990648 },
+        { "id": "n2", "label": "Nozzle 2", "reading_h": 1002988 }
+      ]
+    },
+    {
+      "name": "opsLegacy",
+      "keyPath": "name",
+      "rows": [
+        { "name": "Ramesh", "shift_count": 3 },
+        { "name": "Suresh", "shift_count": 7 }
+      ]
+    }
+  ]
+}
