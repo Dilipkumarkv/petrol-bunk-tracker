@@ -21,31 +21,34 @@ const v0Legacy = JSON.parse(
 );
 
 /**
- * The v1 schema exactly as the M2 plan specifies it. Deliberately hardcoded rather
- * than read from the module: a change to STORE_SPECS must fail this test loudly.
+ * The current (v2) schema, as the S3 addendum specifies it. Deliberately hardcoded
+ * rather than read from the module: a drift in STORE_SPECS must fail this loudly.
  */
-const EXPECTED_V1 = {
+const EXPECTED_V2 = {
   nozzles: { keyPath: 'id' },
   rates: { keyPath: ['product', 'effective_from'] },
-  operators: { keyPath: 'id', indexes: { nameNorm: 'nameNorm' } },
+  operators: { keyPath: 'id', indexes: { nameNorm: { keyPath: 'nameNorm' } } },
   shifts: {
     keyPath: 'id',
     indexes: {
-      date: 'date',
-      date_shift_no: ['date', 'shift_no'],
-      status: 'status',
+      date: { keyPath: 'date' },
+      date_shift_no: { keyPath: ['date', 'shift_no'] },
+      status: { keyPath: 'status' },
     },
   },
   turns: {
     keyPath: 'id',
     indexes: {
-      shift_id: 'shift_id',
-      nozzle_recorded_at: ['nozzle_id', 'recorded_at'],
+      shift_id: { keyPath: 'shift_id' },
+      nozzle_recorded_at: { keyPath: ['nozzle_id', 'recorded_at'] },
+      // v2 additions: the ordered chain, unique so a racing close cannot duplicate a seq
+      nozzle_seq: { keyPath: ['nozzle_id', 'seq'], unique: true },
+      nozzle_status: { keyPath: ['nozzle_id', 'status'] },
     },
   },
-  payments: { keyPath: 'id', indexes: { shift_id: 'shift_id' } },
-  deductions: { keyPath: 'id', indexes: { shift_id: 'shift_id' } },
-  deposits: { keyPath: 'id', indexes: { shift_id: 'shift_id' } },
+  payments: { keyPath: 'id', indexes: { shift_id: { keyPath: 'shift_id' } } },
+  deductions: { keyPath: 'id', indexes: { shift_id: { keyPath: 'shift_id' } } },
+  deposits: { keyPath: 'id', indexes: { shift_id: { keyPath: 'shift_id' } } },
   days: { keyPath: 'date' },
   audit: { keyPath: null, autoIncrement: true },
   drafts: { keyPath: 'shift_id' },
@@ -105,7 +108,7 @@ async function buildLegacyDb(name) {
   return db;
 }
 
-test('fresh database creates every v1 store with the planned keys and indexes', async (t) => {
+test('fresh database creates every v2 store with the planned keys and indexes', async (t) => {
   const name = 'fuel-test-fresh';
   const db = await openDb({ name });
   t.after(async () => {
@@ -114,14 +117,14 @@ test('fresh database creates every v1 store with the planned keys and indexes', 
   });
 
   assert.equal(db.version, SCHEMA_VERSION, 'opens at the current schema version');
-  assert.equal(SCHEMA_VERSION, 1, 'S1 ships schema v1');
+  assert.equal(SCHEMA_VERSION, 2, 'S3 ships schema v2 (additive turn-chain indexes)');
   assert.equal(DB_NAME, 'fuel', 'production database name is fuel');
 
   const names = [...db.objectStoreNames].sort();
-  assert.deepEqual(names, Object.keys(EXPECTED_V1).sort(), 'exactly the planned stores');
+  assert.deepEqual(names, Object.keys(EXPECTED_V2).sort(), 'exactly the planned stores');
 
   const tx = db.transaction(names, 'readonly');
-  for (const [storeName, spec] of Object.entries(EXPECTED_V1)) {
+  for (const [storeName, spec] of Object.entries(EXPECTED_V2)) {
     const store = tx.objectStore(storeName);
     assert.deepEqual(store.keyPath, spec.keyPath, `${storeName}.keyPath`);
     assert.equal(store.autoIncrement, spec.autoIncrement === true, `${storeName}.autoIncrement`);
@@ -132,9 +135,10 @@ test('fresh database creates every v1 store with the planned keys and indexes', 
       Object.keys(expectedIndexes).sort(),
       `${storeName} index names`,
     );
-    for (const [indexName, keyPath] of Object.entries(expectedIndexes)) {
-      assert.deepEqual(store.index(indexName).keyPath, keyPath, `${storeName}.${indexName}.keyPath`);
-      assert.equal(store.index(indexName).unique, false, `${storeName}.${indexName} not unique`);
+    for (const [indexName, indexSpec] of Object.entries(expectedIndexes)) {
+      const index = store.index(indexName);
+      assert.deepEqual(index.keyPath, indexSpec.keyPath, `${storeName}.${indexName}.keyPath`);
+      assert.equal(index.unique, indexSpec.unique === true, `${storeName}.${indexName}.unique`);
     }
   }
 });
@@ -153,7 +157,7 @@ test('reopening at the same version is a no-op and keeps data', async (t) => {
   const first = await openDb({ name, migrations: spyMigrations });
   await putAll(first, 'meta', [{ k: 'device_id', v: 'device-a' }]);
   first.close();
-  assert.equal(runs, 1, 'migration ran once on creation');
+  assert.equal(runs, 2, 'both migrations ran on creation');
 
   const second = await openDb({ name, migrations: spyMigrations });
   t.after(async () => {
@@ -161,8 +165,8 @@ test('reopening at the same version is a no-op and keeps data', async (t) => {
     await deleteDb(name);
   });
 
-  assert.equal(runs, 1, 'reopening did not re-run the migration');
-  assert.equal(second.version, 1);
+  assert.equal(runs, 2, 'reopening did not re-run any migration');
+  assert.equal(second.version, 2);
   assert.deepEqual(await getAll(second, 'meta'), [{ k: 'device_id', v: 'device-a' }]);
 });
 
@@ -174,13 +178,14 @@ test('legacy v0 snapshot upgrades to the current version without data loss', asy
 
   const TARGET = 2;
   const migrations = [
-    ...MIGRATIONS,
+    MIGRATIONS[0],
     {
-      // A realistic future migration: bring the legacy install up to the v1 shape,
-      // then carry its rows across.
+      // A legacy install arrives at S1's shape, skipping v1 entirely. So version 2
+      // must do both jobs: build the v1 stores, run the v2 upgrade, then carry rows.
       version: 2,
       up: (db, tx) => {
         MIGRATIONS[0].up(db, tx);
+        MIGRATIONS[1].up(db, tx);
         const legacyStore = tx.objectStore('nozzlesLegacy');
         const nozzles = tx.objectStore('nozzles');
         legacyStore.openCursor().onsuccess = (event) => {
@@ -202,7 +207,7 @@ test('legacy v0 snapshot upgrades to the current version without data loss', asy
   assert.equal(db.version, 2);
   assert.deepEqual(
     [...db.objectStoreNames].sort(),
-    [...Object.keys(EXPECTED_V1), 'nozzlesLegacy', 'opsLegacy'].sort(),
+    [...Object.keys(EXPECTED_V2), 'nozzlesLegacy', 'opsLegacy'].sort(),
     'v1 stores added alongside the untouched legacy stores',
   );
 

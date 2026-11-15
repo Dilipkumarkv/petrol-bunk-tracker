@@ -1,0 +1,68 @@
+{
+  "note": "Immutable snapshot of the released v2 schema plus a sample turn set: two nozzles, ordered chains, and one open draft. Every future schema version must open this snapshot without data loss (M2 plan, test plan > Migrations). Do not edit: it is fixture data.",
+  "version": 2,
+  "stores": {
+    "nozzles": [
+      { "id": "nz-ms1", "label": "MS1", "product": "Petrol", "use": "Sales", "sheet": "MS", "active": true },
+      { "id": "nz-hsd1", "label": "HSD1", "product": "Diesel", "use": "Sales", "sheet": "HSD", "active": true }
+    ],
+    "shifts": [
+      { "id": "s1", "date": "2026-11-14", "shift_no": 1, "operator_id": "op1", "status": "closed" }
+    ],
+    "turns": [
+      {
+        "id": "t1",
+        "shift_id": "s1",
+        "nozzle_id": "nz-ms1",
+        "seq": 1,
+        "status": "closed",
+        "opening_h": 1000000,
+        "closing_h": 1002988,
+        "testing_h": 0,
+        "credits_h": [],
+        "started_at": "2026-11-14T05:00:00+05:30",
+        "recorded_at": "2026-11-14T13:00:00+05:30"
+      },
+      {
+        "id": "t2",
+        "shift_id": "s1",
+        "nozzle_id": "nz-ms1",
+        "seq": 2,
+        "status": "closed",
+        "opening_h": 1002988,
+        "closing_h": 1005000,
+        "testing_h": 0,
+        "credits_h": [],
+        "started_at": "2026-11-14T13:00:00+05:30",
+        "recorded_at": "2026-11-14T21:00:00+05:30"
+      },
+      {
+        "id": "t3",
+        "shift_id": "s2",
+        "nozzle_id": "nz-hsd1",
+        "seq": 1,
+        "status": "closed",
+        "opening_h": 164990648,
+        "closing_h": 165084648,
+        "testing_h": 0,
+        "credits_h": [],
+        "started_at": "2026-11-14T05:00:00+05:30",
+        "recorded_at": "2026-11-14T13:00:00+05:30"
+      },
+      {
+        "id": "t4",
+        "shift_id": "s2",
+        "nozzle_id": "nz-hsd1",
+        "seq": null,
+        "status": "draft",
+        "opening_h": 165084648,
+        "closing_h": null,
+        "testing_h": 0,
+        "credits_h": [],
+        "started_at": "2026-11-14T21:00:00+05:30",
+        "recorded_at": null
+      }
+    ],
+    "meta": [{ "k": "schema_version", "v": 2 }]
+  }
+}

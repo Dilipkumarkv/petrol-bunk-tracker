@@ -19,15 +19,14 @@
 export const DB_NAME = 'fuel';
 
 /** Current schema version. Bumping this requires a new migration in the same commit. */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /**
- * The v1 schema, exactly as the M2 plan lists it.
- * `keyPath: null` with `autoIncrement: true` means a generated numeric key (audit log).
- * @type {ReadonlyArray<{name: string, keyPath: string|string[]|null, autoIncrement?: boolean,
- *                       indexes?: ReadonlyArray<{name: string, keyPath: string|string[]}>}>}
+ * The v1 schema, frozen. Migrations are historical: they must keep producing the shape
+ * that actually shipped, not whatever the current schema happens to be.
+ * @type {ReadonlyArray<object>}
  */
-export const STORE_SPECS = Object.freeze([
+export const V1_STORE_SPECS = Object.freeze([
   { name: 'nozzles', keyPath: 'id' },
   { name: 'rates', keyPath: ['product', 'effective_from'] },
   { name: 'operators', keyPath: 'id', indexes: [{ name: 'nameNorm', keyPath: 'nameNorm' }] },
@@ -58,22 +57,103 @@ export const STORE_SPECS = Object.freeze([
 ]);
 
 /**
+ * The current (v2) schema: v1 plus the ordered chain on `turns`.
+ * `nozzle_seq` is unique, and drafts carry `seq: null` — a null is not a valid key,
+ * so drafts are automatically absent from that index and many can coexist.
+ */
+export const STORE_SPECS = Object.freeze(
+  V1_STORE_SPECS.map((spec) =>
+    spec.name === 'turns'
+      ? Object.freeze({
+          ...spec,
+          indexes: Object.freeze([
+            ...spec.indexes,
+            Object.freeze({ name: 'nozzle_seq', keyPath: ['nozzle_id', 'seq'], unique: true }),
+            Object.freeze({ name: 'nozzle_status', keyPath: ['nozzle_id', 'status'] }),
+          ]),
+        })
+      : spec,
+  ),
+);
+
+/**
  * Create every store in `STORE_SPECS`. Must run inside an upgrade transaction.
  * Exported through `MIGRATIONS` so a later migration can re-use it when a legacy
  * database skipped an earlier version.
  * @param {IDBDatabase} db
  */
-export function createStores(db) {
-  for (const spec of STORE_SPECS) {
+export function createStores(db, specs = V1_STORE_SPECS) {
+  for (const spec of specs) {
     if (db.objectStoreNames.contains(spec.name)) continue;
     const store = db.createObjectStore(spec.name, {
       keyPath: spec.keyPath,
       autoIncrement: spec.autoIncrement === true,
     });
     for (const index of spec.indexes ?? []) {
-      store.createIndex(index.name, index.keyPath, { unique: false });
+      store.createIndex(index.name, index.keyPath, { unique: index.unique === true });
     }
   }
+}
+
+/**
+ * A turn belongs to a nozzle's chain when it is closed. Rows written before `status`
+ * existed are judged by whether a numeric closing reading is present.
+ * @param {object} row
+ * @returns {boolean}
+ */
+function isClosedTurn(row) {
+  if (row.status === 'closed') return true;
+  if (row.status === 'draft') return false;
+  return Number.isInteger(row.closing);
+}
+
+/** Chain order: recorded_at, then id as a deterministic tie-breaker. */
+function compareChain(a, b) {
+  const left = a.recorded_at ?? '';
+  const right = b.recorded_at ?? '';
+  if (left !== right) return left < right ? -1 : 1;
+  if (a.id === b.id) return 0;
+  return a.id < b.id ? -1 : 1;
+}
+
+/**
+ * Assign `seq` 1..N per nozzle to closed turns and `null` to drafts.
+ * The ONLY place recorded_at is used for ordering — once, at migration time.
+ * Must run inside the upgrade transaction.
+ * @param {IDBObjectStore} turns
+ */
+function backfillSeq(turns) {
+  const rows = [];
+  const cursorRequest = turns.openCursor();
+
+  cursorRequest.onsuccess = (event) => {
+    const cursor = event.target.result;
+    if (cursor) {
+      rows.push(cursor.value);
+      cursor.continue();
+      return;
+    }
+
+    const chains = new Map();
+    for (const row of rows) {
+      if (!isClosedTurn(row)) {
+        row.seq = null;
+        continue;
+      }
+      const chain = chains.get(row.nozzle_id) ?? [];
+      chain.push(row);
+      chains.set(row.nozzle_id, chain);
+    }
+
+    for (const chain of chains.values()) {
+      chain.sort(compareChain);
+      chain.forEach((row, index) => {
+        row.seq = index + 1;
+      });
+    }
+
+    for (const row of rows) turns.put(row);
+  };
 }
 
 /**
@@ -83,6 +163,19 @@ export function createStores(db) {
  */
 export const MIGRATIONS = Object.freeze([
   { version: 1, up: (db) => createStores(db) },
+  {
+    version: 2,
+    up: (db, tx) => {
+      const turns = tx.objectStore('turns');
+      if (!turns.indexNames.contains('nozzle_seq')) {
+        turns.createIndex('nozzle_seq', ['nozzle_id', 'seq'], { unique: true });
+      }
+      if (!turns.indexNames.contains('nozzle_status')) {
+        turns.createIndex('nozzle_status', ['nozzle_id', 'status']);
+      }
+      backfillSeq(turns);
+    },
+  },
 ]);
 
 /**
