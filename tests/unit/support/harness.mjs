@@ -37,7 +37,9 @@ export async function makeTestRepos(t, overrides = {}) {
     db.close();
     await deleteDb(name);
   });
-  return makeRepos({ db, now: fixedClock(), newId: counterIds(), ...overrides });
+  const repos = makeRepos({ db, now: fixedClock(), newId: counterIds(), ...overrides });
+  // `db` is exposed so concurrency/atomicity tests can drive raw transactions.
+  return { ...repos, db };
 }
 
 /** Assert a promise rejects with a specific error code. */
