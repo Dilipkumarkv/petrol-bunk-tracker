@@ -7,22 +7,32 @@
 import { makeNozzleRepo } from './nozzles.js';
 import { makeRateRepo } from './rates.js';
 import { makeOperatorRepo } from './operators.js';
+import { makeTurnRepo, meter } from './turns.js';
 
 /**
  * @param {object} deps
  * @param {IDBDatabase} deps.db
  * @param {() => string} deps.now returns an ISO timestamp
  * @param {() => string} deps.newId returns a fresh id
- * @returns {{nozzles: object, rates: object, operators: object}}
+ * @returns {{nozzles: object, rates: object, operators: object, turns: object, meter: object}}
  */
 export function makeRepos({ db, now, newId } = {}) {
   if (!db) throw new TypeError('makeRepos requires a database handle');
   if (typeof now !== 'function') throw new TypeError('makeRepos requires now() for timestamps');
   if (typeof newId !== 'function') throw new TypeError('makeRepos requires newId() for identifiers');
 
+  const turns = makeTurnRepo({ db, now, newId });
+  const boundMeter = {
+    lastClosing: (nozzleId) => meter.lastClosing(db, nozzleId),
+    chain: (nozzleId, opts) => meter.chain(db, nozzleId, opts),
+    verifyChain: (nozzleId) => meter.verifyChain(db, nozzleId),
+  };
+
   return {
     nozzles: makeNozzleRepo({ db, now, newId }),
     rates: makeRateRepo({ db, now }),
     operators: makeOperatorRepo({ db, now, newId }),
+    turns,
+    meter: boundMeter,
   };
 }

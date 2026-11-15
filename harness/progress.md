@@ -1,64 +1,44 @@
-# Progress — M2 S1 + rounding decision
+# Progress — M2 S3 (1/3) v2 migration complete
 
 **Milestone status**
 | Milestone | Target | State |
 |---|---|---|
 | M1 core/ money + validation | G1–G6 exact; property + mutation green | ✅ slice 1 done · ✅ rounding (OQ-1) done · slice 3 settlement pending |
-| **M2 Data layer** | IndexedDB + migrations + audit | **S1 done** |
+| **M2 Data layer** | IndexedDB + migrations + audit | **S1 ✅ · S2 ✅ · S3 (1/3) ✅** |
 | M3 Operator flow | 5 screens, clumsy e2e, Kannada | — |
 | M4 Owner mode | Day close, PIN, amend | — |
 | M5 Reports & export | Excel parity, XLSX/CSV/JSON | — |
 | M6 Pilot | 14-day shadow, zero unexplained diffs | — |
 
-## Rounding — owner-confirmed 2026-11-15 (D6) — DONE
-Petrol/Diesel truncate per operator-shift per product; XP rounds half-up; ±₹1 flag tolerance;
-exact internal math; p.27's 17,710 accepted as a documented ₹1-truncation exception.
-
-- `shiftSales(turns)` — groups by product (+rate), rounds once per group
-- `roundToRupees(amountX100, policy)` — integer division only, no fractional intermediate
-- `flagFor(diffPaise, tolerancePaise=100)` — §4.2 boundaries, inclusive at ±₹1
-- 20 new tests (G1–G5 reproduce every `paper_rupees`; p.27 exception pinned)
-- Mutation pass 6/6 red: truncate→round, half-up→truncate, tolerance `<` vs `<=`,
-  integer division→float, Petrol policy flipped, XP policy flipped. Control 20/20 green.
-- New **OQ-12**: mid-shift rate change is not covered by the rule; grouped by product+rate
-  (identical for a single rate). Owner to confirm.
-
 ## Slice S1 — `db.js` open + versioned migration runner — DONE
+[... unchanged ...]
+
+## Slice S2 — nozzles, rates, operators repos + text.js — DONE
+[... unchanged ...]
+
+## Slice S3 (1/3) — v2 migration with turn chain indexes — DONE
 
 **Files created:**
-- `app/src/data/db.js` — `openDb`, `deleteDb`, `applyMigrations`, `createStores`, `STORE_SPECS` (v1), `MIGRATIONS` (v1), `DB_NAME='fuel'`, `SCHEMA_VERSION=1`
-- `tests/unit/db.test.mjs` — 8 tests: fresh DB shape, reopening no-op, legacy upgrade carries data, v1 snapshot round-trip, downgrade rejected, migration runner validation, IndexedDB missing, no UI/float imports
-- `tests/fixtures/db-v1.json` — immutable v1 snapshot (released schema + sample rows)
-- `tests/fixtures/db-v0.json` — synthetic legacy install for upgrade proof
+- `app/src/data/db.js` — `SCHEMA_VERSION = 2`, `MIGRATIONS[1]` creates `nozzle_seq` (unique) + `nozzle_status`, backfills `seq` 1..N per nozzle using `recorded_at` then `id`, treats drafts/unknown status correctly
+- `tests/unit/migrations-v2.test.mjs` — 10 tests: v1→v2 upgrade, per-nozzle backfill, ties broken by id, drafts excluded, unique index enforced, reopening no-op, v2 snapshot round-trip
+- `tests/fixtures/db-v2.json` — immutable v2 snapshot (two nozzles, ordered chains, one draft)
+- `tests/unit/db.test.mjs` — updated to v2 schema expectations
 
 **Test results (Node 26, `--test-isolation=none`):**
 ```
-28 pass, 0 fail
-20 golden (nozzleSales) ✅
-8 db (schema + migrations + fixtures) ✅
+103 pass, 0 fail (all prior suites + 18 migration tests)
 ```
 
-**Mutation pass (M2 plan, §Guard rules):**
+**Mutation pass (5/5 red):**
 | Mutation | Result |
 |---|---|
-| Drop `status` index on `shifts` | 7 pass → 1 fail ✅ |
-| `rates` keyPath not composite | 7 pass → 1 fail ✅ |
-| `audit` loses `autoIncrement` | 8 pass → 2 fail ✅ |
-| Re-run already-applied migrations | 8 pass → 1 fail ✅ |
-| Skip gap validation | 8 pass → 1 fail ✅ |
-| Skip duplicate validation | 8 pass → 1 fail ✅ |
-| Control (unmutated) | 8 pass, 0 fail ✅ |
+| `nozzle_seq` non-unique | 103→101 |
+| Skip backfill | 103→98 |
+| Global backfill (no per-nozzle grouping) | 103→98 |
+| Forgot to bump `SCHEMA_VERSION` | 103→92 |
+| Assign `seq` to drafts | 103→102 |
+| Control | 103/0 |
 
-All mutations turn the suite red — the migration runner and schema are verified by the tests.
+All mutations turn the suite red.
 
-**Guard rules enforced:**
-- No float arithmetic or `toFixed` for money in `/data` (test confirms).
-- No `/ui` imports in `/data` (test confirms).
-- `fake-indexeddb` is dev-only (`package.json` `devDependencies`).
-- `db-v1.json` fixture is immutable — a schema change requires a new DB version, migration, and snapshot in the same commit.
-
-**Current full suite: 48 pass, 0 fail** (20 nozzleSales golden + 8 db + 20 rounding).
-
-**Next:** Slice S2 — Entity repositories (nozzles, rates, operators).
-Awaiting Verifier sign-off before S2 (per kickoff prompt). M1 slice 3 (`settleShift`) is now
-unblocked by D6 and can be scheduled whenever the Planner wants it.
+**Next commit (2/3):** Turns repository, `meter` queries (`lastClosing`, `chain`, `verifyChain`), `closeTurnInTx`. Awaiting the full S3 brief (`M2_S3_Meter_Continuity.md`) to write those APIs — the addendum only specifies the schema change.

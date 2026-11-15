@@ -1,0 +1,45 @@
+{
+  "note": "Golden G6 — the real meter chain from the 12-Nov sheet, nozzle MS1, in hundredths of a litre. Immutable fixture: do not edit.",
+  "id": "G6",
+  "nozzle_id": "nz-ms1",
+  "cursor": "12-Nov sheet, nozzle MS1",
+  "unit": "hundredths of a litre",
+  "turns": [
+    {
+      "id": "g6-1",
+      "seq": 1,
+      "shift_id": "shift-g6-1",
+      "operator_id": "op-1",
+      "opening": 164957772,
+      "closing": 164963319,
+      "litres": 5547,
+      "override": { "reason": "FIRST_ENTRY", "unaccounted": null, "note": null }
+    },
+    {
+      "id": "g6-2",
+      "seq": 2,
+      "shift_id": "shift-g6-2",
+      "operator_id": "op-2",
+      "opening": 164963319,
+      "closing": 164968480,
+      "litres": 5161,
+      "override": null
+    },
+    {
+      "id": "g6-3",
+      "seq": 3,
+      "shift_id": "shift-g6-3",
+      "operator_id": "op-3",
+      "opening": 164968480,
+      "closing": 164972770,
+      "litres": 4290,
+      "override": null
+    }
+  ],
+  "expected": {
+    "verify_chain": [],
+    "total_litres": 14998,
+    "first_opening": 164957772,
+    "last_closing": 164972770
+  }
+}
