@@ -45,3 +45,37 @@ non-affiliation paragraph, and no operator/customer/company data is committed �
 placeholders and the openings are synthetic (D4).
 Reason: trademark clarity on a public repo, and no real money data in a public place.
 Affects: repo name, repo description, README §"Not affiliated", public visibility.
+
+## D6 2026-11-15 — ROUNDING, owner-confirmed (closes OQ-1)
+**Decision (owner, verbatim):**
+- Petrol & Diesel: per operator-shift, per product: sum net litres, × rate, **TRUNCATE** to whole rupees.
+- XP: **round half-up** to whole rupees (.50 and above up).
+- Internal math exact: integer hundredths-of-litre × integer paise/L.
+- Tolerance ±1 rupee at flag time.
+- Known exception: **p.27** line — 17,709.885 written as 17,710.
+
+**Implementation:**
+- `ROUNDING_POLICY = { Petrol: 'truncate', Diesel: 'truncate', XP: 'half-up' }`.
+- Rounding happens at `shiftSales()`: group by product, sum `salesLitresH` and the exact
+  `salesX100`, then round **once per group**. Never per nozzle, never on the combined
+  shift total (that would round across products and can differ by a rupee).
+- `roundToRupees(amountX100, policy)` uses integer division (`(n - n % d) / d`) so no
+  fractional intermediate exists. Half-up adds 5,000 x100-units (₹0.50) before truncating.
+- `flagFor(diffPaise, tolerancePaise = 100)` implements §4.2: SHORT at -₹1, EXCESS at +₹1,
+  inclusive at the boundary, owner-configurable.
+- An unknown product throws instead of defaulting to a policy.
+
+**p.27 exception:** truncation yields ₹17,709 where the paper says ₹17,710. The ₹1 gap is
+inside the ±₹1 tolerance, so it is recorded, not "fixed". Encoded as a test
+(`tests/golden/rounding.test.mjs`) so the exception can never be silently absorbed by a
+later change.
+
+**New open question — OQ-12:** the rule says "sum net litres × rate", which presumes one
+rate per product per shift. A mid-shift rate change is not covered. Implemented as grouping
+by **product + rate**, which is identical to the stated rule for a single rate and never
+multiplies litres by the wrong price. Owner to confirm whether a rate change can happen
+mid-shift, and if so whether rounding should be per rate group.
+
+Reason: OQ-1 explicitly blocked M1 slice 3 and any shift-total test.
+Affects: `core/money.js` (`shiftSales`, `roundToRupees`, `flagFor`), M1 slice 3, M5 exports.
+Tests: 20 new; mutation pass 6/6 red when the rule is broken.

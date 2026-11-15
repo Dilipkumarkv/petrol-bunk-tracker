@@ -12,7 +12,7 @@ Slices are ordered so each one is green on its own and never needs a later slice
 |---|---|---|---|
 | **1** | `money.js: nozzleSales(opening, closing, testing, credits[], ratePaise)` | G1–G5 exact `amount_x100`; G4 credits; G5 testing; split-linearity; rejects closing<opening and non-integer input | **doing** |
 | 2 | `money.js: shiftSales(turns[])` — Σ nozzle sales in exact `x100` | G1/G2/G4 shift totals == fixture `amount_x100`; order-independent | todo |
-| 3 | `money.js: settleShift()` — digital, adjustments, expected_cash, flag | G2 expected cash 4,993; G3 10,785; G4 38,263; tolerance boundary at exactly ₹1 | todo — **blocked by OQ-1** |
+| 3 | `money.js: settleShift()` — digital, adjustments, expected_cash, flag | G2 expected cash 4,993; G3 10,785; G4 38,263; tolerance boundary at exactly ₹1 | **unblocked 2026-11-15** — rounding done (D6); settlement scaffolding still todo |
 | 4 | `validate.js` — §6 rules returning `{ok, level, msg}` | one test per §6 row incl. closing==opening warn and 3× outlier warn | todo |
 | 5 | `model.js` — normalizers + meter continuity (G6) | G6: opening must equal previous closing | todo |
 | 6 | Property + mutation suite | §10.3 invariants; mutation pass must go red on sign flip / dropped testing deduction | todo |
